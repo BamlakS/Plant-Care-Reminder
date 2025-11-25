@@ -36,20 +36,27 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+// _HomeScreenState manages the data and behavior for HomeScreen
 class _HomeScreenState extends State<HomeScreen> {
+  // Create an instance of FirestoreService to interact with the database
   final FirestoreService _firestoreService = FirestoreService();
 
+  // initState runs once when the screen is first created
   @override
   void initState() {
     super.initState();
-    // Initialize sample data
+    // Initialize sample data in Firestore if the database is empty
     _firestoreService.initializeSampleData();
   }
 
+  // This function updates a plant's last watered date in Firestore
   Future<void> _waterPlant(String plantId, String plantName) async {
     try {
+      // Call Firestore service to update the plant's watering date
       await _firestoreService.waterPlant(plantId);
+      // Check if the widget is still mounted before showing SnackBar
       if (mounted) {
+        // Show a blue success message at the bottom of the screen
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$plantName watered! 💧'),
@@ -59,6 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } catch (e) {
+      // If there's an error, show a red error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -70,17 +78,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // This function deletes a plant from Firestore after user confirmation
   Future<void> _deletePlant(String plantId, String plantName) async {
+    // Show a confirmation dialog before deleting
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Plant'),
         content: Text('Are you sure you want to delete $plantName?'),
         actions: [
+          // Cancel button - closes dialog without deleting
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
+          // Delete button - confirms deletion
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -90,10 +102,13 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
+    // Only delete if user confirmed
     if (confirmed == true) {
       try {
+        // Call Firestore service to delete the plant
         await _firestoreService.deletePlant(plantId);
         if (mounted) {
+          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('$plantName deleted'),
@@ -102,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
       } catch (e) {
+        // Show error message if deletion fails
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -114,21 +130,26 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // build method creates the UI for the home screen
   @override
   Widget build(BuildContext context) {
+    // Scaffold provides the basic structure (app bar, body, floating button)
     return Scaffold(
+      // App bar at the top with title
       appBar: AppBar(
         title: const Text('🌿 My Plants'),
       ),
+      // Body contains the main content - a list of plants from Firestore
       body: StreamBuilder<List<Plant>>(
+        // Listen to real-time updates from Firestore
         stream: _firestoreService.getPlants(),
         builder: (context, snapshot) {
-          // Loading state
+          // Show loading spinner while waiting for data
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Error state
+          // Show error message if something went wrong
           if (snapshot.hasError) {
             return Center(
               child: Column(
@@ -138,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16),
                   Text('Error: ${snapshot.error}'),
                   const SizedBox(height: 16),
+                  // Retry button to reload data
                   ElevatedButton(
                     onPressed: () => setState(() {}),
                     child: const Text('Retry'),
@@ -147,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          // No data state
+          // Show message if there are no plants yet
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Column(
@@ -169,21 +191,25 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          // Data loaded successfully
+          // Data loaded successfully - display the list of plants
           final plants = snapshot.data!;
 
+          // Create a scrollable list of plant cards
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: plants.length,
             itemBuilder: (context, index) {
               final plant = plants[index];
+              // Build each plant card
               return _buildPlantCard(plant);
             },
           );
         },
       ),
+      // Floating action button (+ button) to add new plants
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          // Navigate to Add Plant screen
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddPlantScreen()),
@@ -194,7 +220,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // This method builds the UI for each individual plant card
   Widget _buildPlantCard(Plant plant) {
+    // Card widget creates a box with shadow and rounded corners
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -202,20 +230,22 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Top row: emoji, plant info, and status circle
             Row(
               children: [
-                // Plant emoji
+                // Display plant emoji
                 Text(
                   plant.emoji,
                   style: const TextStyle(fontSize: 40),
                 ),
                 const SizedBox(width: 16),
 
-                // Plant info
+                // Plant name, species, and watering status
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Plant name in bold
                       Text(
                         plant.name,
                         style: const TextStyle(
@@ -223,6 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      // Plant species in smaller gray text
                       Text(
                         plant.species,
                         style: TextStyle(
@@ -231,12 +262,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
+                      // Show when plant needs to be watered
                       _buildWateringStatus(plant),
                     ],
                   ),
                 ),
-
-                // Status indicator circle
+                // Colored circle showing plant status (red/orange/yellow/green)
                 Container(
                   width: 20,
                   height: 20,
@@ -249,9 +280,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Action buttons
+            // Bottom row: Water and Delete buttons
             Row(
               children: [
+                // Water button (blue)
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _waterPlant(plant.id, plant.name),
@@ -263,6 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Delete button (red)
                 ElevatedButton.icon(
                   onPressed: () => _deletePlant(plant.id, plant.name),
                   icon: const Icon(Icons.delete, size: 18),

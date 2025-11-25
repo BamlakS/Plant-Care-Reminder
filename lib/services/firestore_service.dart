@@ -41,7 +41,7 @@ class FirestoreService {
     }
   }
 
-  // Initialize sample data (call this once)
+  // Initialize sample data
   Future<void> initializeSampleData() async {
     final snapshot = await plantsCollection.get();
     if (snapshot.docs.isEmpty) {
