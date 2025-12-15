@@ -291,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     label: const Text('Water'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
+                      foregroundColor: Colors.black,
                     ),
                   ),
                 ),
@@ -302,6 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: const Text('Delete'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
+                    foregroundColor: Colors.black,
                   ),
                 ),
               ],
